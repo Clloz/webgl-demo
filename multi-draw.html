@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>drawTriangle</title>
+  <style>
+    canvas {
+      width: 500px;
+      height: 500px;
+    }
+    #fps {
+      position: absolute;
+      top: 30px;
+      left: 30px;
+      height: 30px;
+      width: 100px;
+      font-size: 24px;
+      line-height: 30px;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+<div id="fps"></div>
+<canvas></canvas>
+<script id="vertex-shader" type="notjs">#version 300 es
+    in vec2 a_position;
+    in mat3 a_matrix;
+    in vec3 a_color;
+    out vec3 v_color;
+
+    void main() {
+        gl_Position = vec4((a_matrix * vec3(a_position, 1)).xy, 0, 1);
+        v_color = a_color;
+    }
+</script>
+<script id="fragment-shader" type="notjs">#version 300 es
+    precision highp float;
+    in vec3 v_color;
+    out vec4 fragColor;
+
+    void main() {
+        fragColor = vec4(v_color, 1);
+    }
+
+</script>
+<script id="vertex-shader-2d" type="notjs">#version 300 es
+    in vec2 a_position;
+    in float a_pointSize;
+    in vec3 a_color;
+
+    out vec3 v_color;
+    void main() {
+        gl_Position = vec4(a_position, 0, 1);
+        gl_PointSize = a_pointSize;
+        v_color = a_color;
+    }
+</script>
+<script id="fragment-shader-2d" type="notjs">#version 300 es
+    precision mediump float;
+    in vec3 v_color;
+    out vec4 fragColor;
+    void main() {
+        vec2 center = vec2(0.5, 0.5);
+        vec2 dist = gl_PointCoord - center;
+        if (length(dist) > 0.5) {
+            discard;
+        }
+        fragColor = vec4(v_color, 1);
+    }
+</script>
+<script src="./webgl.js"></script>
+<script>
+  const getFps = fps('#fps')
+
+  const canvas = document.querySelector('canvas')
+  canvas.width = 1000
+  canvas.height = 1000
+
+  const gl = canvas.getContext('webgl2', { antialias: true })
+  gl.viewport(0, 0, canvas.width, canvas.height)
+
+  const vertexShaderSource = document.querySelector('#vertex-shader').text
+  const fragmentShaderSource = document.querySelector('#fragment-shader').text
+
+  const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource)
+  const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)
+
+  const program = createProgram(gl, vertexShader, fragmentShader)
+
+  const positionLocation = gl.getAttribLocation(program, 'a_position')
+  const matrixLocation = gl.getAttribLocation(program, 'a_matrix')
+  const colorLocation = gl.getAttribLocation(program, 'a_color')
+
+  const vao = gl.createVertexArray()
+  gl.bindVertexArray(vao)
+
+  const positionBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+  const alpha = 2 * Math.PI / 3;
+  const beta = 2 * alpha;
+  // const positions = [
+  //     0, 0.1,
+  //     0.1 * Math.sin(alpha), 0.1 * Math.cos(alpha),
+  //     0.1 * Math.sin(beta), 0.1 * Math.cos(beta),
+  // ]
+  const positions = [
+    0, 0.1,
+    0.05, -0.05,
+    -0.05, -0.05,
+  ]
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
+  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
+  gl.enableVertexAttribArray(positionLocation)
+
+  const matrixBuffer = gl.createBuffer()
+  const colorBuffer = gl.createBuffer()
+
+  const instanceNum = 50
+  const positionInstance = new Float32Array(instanceNum * 6)
+  const matrixInstance = new Float32Array(instanceNum * 9)
+  const colorInstance = new Float32Array(instanceNum * 3)
+  // const colors = [[39, 125, 255], [48,192,25], [98, 39, 255]]
+
+  for (let i = 0; i < instanceNum; i++) {
+    const x = Math.random() * 2 - 1
+    const y = Math.random() * 2 - 1
+    const angle = Math.random() * 2 * Math.PI
+    const color = [Math.random(), Math.random(), Math.random()]
+    const matrix = [
+      Math.cos(angle), Math.sin(angle), 0,
+      -Math.sin(angle), Math.cos(angle), 0,
+      x, y, 1
+    ]
+    matrixInstance.set(matrix, i * 9)
+    colorInstance.set(color, i * 3)
+  }
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer)
+  gl.bufferData(gl.ARRAY_BUFFER, matrixInstance, gl.DYNAMIC_DRAW)
+  for (let j = 0; j < 3; j++) {
+    gl.enableVertexAttribArray(matrixLocation + j)
+    gl.vertexAttribPointer(matrixLocation + j, 3, gl.FLOAT, false, 36, j * 12)
+    gl.vertexAttribDivisor(matrixLocation + j, 1)
+  }
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer)
+  gl.bufferData(gl.ARRAY_BUFFER, colorInstance, gl.DYNAMIC_DRAW)
+  gl.enableVertexAttribArray(colorLocation)
+  gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0)
+  gl.vertexAttribDivisor(colorLocation, 1)
+
+  // program1
+  const vertexShaderSource1 = document.querySelector('#vertex-shader-2d').text
+  const fragmentShaderSource1 = document.querySelector('#fragment-shader-2d').text
+  const vertexShader1 = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource1)
+  const fragmentShader1 = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource1)
+  const program1 = createProgram(gl, vertexShader1, fragmentShader1)
+
+  const instanceNum1 = 30
+  const instanceData = new Float32Array(instanceNum1 * 6)
+
+  const positionAttributeLocation = gl.getAttribLocation(program1, 'a_position')
+  const pointSizeAttributeLocation = gl.getAttribLocation(program1, 'a_pointSize')
+  const colorAttributeLocation = gl.getAttribLocation(program1, 'a_color')
+
+  const vao1 = gl.createVertexArray()
+  gl.bindVertexArray(vao1)
+
+  const instanceBuffer = gl.createBuffer()
+
+  for (let i = 0; i < instanceNum1; i++) {
+    instanceData[i * 6] = Math.random() * 2 - 1
+    instanceData[i * 6 + 1] = Math.random() * 2 - 1
+    instanceData[i * 6 + 2] = 50
+    instanceData[i * 6 + 3] = Math.random()
+    instanceData[i * 6 + 4] = Math.random()
+    instanceData[i * 6 + 5] = Math.random()
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer)
+  gl.bufferData(gl.ARRAY_BUFFER, instanceData, gl.DYNAMIC_DRAW)
+
+  gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 24, 0)
+  gl.enableVertexAttribArray(positionAttributeLocation)
+  gl.vertexAttribDivisor(positionAttributeLocation, 1)
+
+  gl.vertexAttribPointer(pointSizeAttributeLocation, 1, gl.FLOAT, false, 24, 8)
+  gl.enableVertexAttribArray(pointSizeAttributeLocation)
+  gl.vertexAttribDivisor(pointSizeAttributeLocation, 1)
+
+  gl.vertexAttribPointer(colorAttributeLocation, 3, gl.FLOAT, false, 24, 12)
+  gl.enableVertexAttribArray(colorAttributeLocation)
+  gl.vertexAttribDivisor(colorAttributeLocation, 1)
+  function animate(now) {
+    gl.clearColor(0,0,0,1)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    for (let i = 0; i < instanceNum; i++) {
+      const x = Math.random() * 2 - 1
+      const y = Math.random() * 2 - 1
+      const angle = Math.random() * 2 * Math.PI
+      const color = [Math.random(), Math.random(), Math.random()]
+      const matrix = [
+        Math.cos(angle), Math.sin(angle), 0,
+        -Math.sin(angle), Math.cos(angle), 0,
+        x, y, 1
+      ]
+      matrixInstance.set(matrix, i * 9)
+      colorInstance.set(color, i * 3)
+    }
+
+    gl.useProgram(program)
+
+    gl.bindVertexArray(vao)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, matrixInstance, gl.DYNAMIC_DRAW)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, colorInstance, gl.DYNAMIC_DRAW)
+
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 3, instanceNum);
+    console.log(gl.getError())
+
+    gl.useProgram(program1)
+    gl.bindVertexArray(vao1)
+
+    for (let i = 0; i < instanceNum1; i++) {
+      instanceData[i * 6] = Math.random() * 2 - 1
+      instanceData[i * 6 + 1] = Math.random() * 2 - 1
+      instanceData[i * 6 + 2] = 50
+      instanceData[i * 6 + 3] = Math.random()
+      instanceData[i * 6 + 4] = Math.random()
+      instanceData[i * 6 + 5] = Math.random()
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, instanceData, gl.DYNAMIC_DRAW)
+
+    gl.drawArraysInstanced(gl.POINTS, 0, 1, instanceNum1)
+
+    setTimeout(animate, 1000)
+    // requestAnimationFrame(animate)
+  }
+
+  requestAnimationFrame(animate)
+</script>
+</body>
+</html>

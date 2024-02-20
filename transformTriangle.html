@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>transform triangle</title>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<script id="vertex-shader-2d" type="notjs">#version 300 es
+    in vec2 a_position;
+    uniform mat3 u_rotationMatrix;
+    uniform mat3 u_translationMatrix;
+    uniform mat3 u_scaleMatrix;
+    void main() {
+        gl_Position = vec4((u_translationMatrix * u_scaleMatrix * u_rotationMatrix * vec3(a_position, 1.0)).xy, 0, 1);
+        gl_PointSize = 5.0;
+    }
+</script>
+<script id="fragment-shader-2d" type="notjs">#version 300 es
+    precision mediump float;
+    out vec4 fragColor;
+    uniform vec4 u_color;
+    void main() {
+        fragColor = u_color;
+    }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/3.4.2/gl-matrix-min.js" integrity="sha512-eV9ExyTa3b+YHr99IBTYpwk4wbgDMDlfW8uTxhywO8dWb810fGUSKDgHhEv1fAqmJT4jyYnt1iWWMW4FRxeQOQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="./webgl.js"></script>
+<script>
+    const {mat3, vec3} = glMatrix
+
+    const modelMatrix = mat3.create();
+    console.log(mat3.translate(modelMatrix, modelMatrix, vec3.fromValues(0.5, 0.5, 0.0)))
+    function main() {
+        const canvas = document.querySelector('#gl')
+        canvas.width = 500
+        canvas.height = 500
+        const gl = canvas.getContext('webgl2', {
+            antialias: false
+        })
+
+        const vertexShaderSource = document.querySelector('#vertex-shader-2d').text
+        const fragmentShaderSource = document.querySelector('#fragment-shader-2d').text
+        initShader(gl, vertexShaderSource, fragmentShaderSource)
+
+        const vertices = new Float32Array([
+            0.0, 0.5,
+            -0.5, -0.5,
+            0.5, -0.5,
+            0, 0,
+        ])
+        const n = 3
+
+        const vertexBuffer = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+
+        const positionAttributeLocation = gl.getAttribLocation(gl.program, 'a_position')
+        gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(positionAttributeLocation)
+
+        const radian = -90 / 180 * Math.PI
+        const cosB = Math.cos(radian)
+        const sinB = Math.sin(radian)
+        const u_matrix = new Float32Array([
+            cosB, sinB, 0,
+            -sinB, cosB, 0,
+            0, 0, 1
+        ])
+        const u_matrixLocation = gl.getUniformLocation(gl.program, 'u_rotationMatrix')
+        gl.uniformMatrix3fv(u_matrixLocation, false, u_matrix)
+
+        const u_translationMatrix = new Float32Array([
+            1, 0, 0,
+            0, 1, 0,
+            0.5, 0.5, 1
+        ])
+        const u_translationMatrixLocation = gl.getUniformLocation(gl.program, 'u_translationMatrix')
+        gl.uniformMatrix3fv(u_translationMatrixLocation, false, u_translationMatrix)
+
+        const u_scaleMatrix = new Float32Array([
+            0.5, 0, 0,
+            0, 0.5, 0,
+            0, 0, 1
+        ])
+        const u_scaleMatrixLocation = gl.getUniformLocation(gl.program, 'u_scaleMatrix')
+        gl.uniformMatrix3fv(u_scaleMatrixLocation, false, u_scaleMatrix)
+
+        const colorUniformLocation = gl.getUniformLocation(gl.program, 'u_color')
+        gl.uniform4f(colorUniformLocation, 1, 0, 0, 1)
+
+        gl.clearColor(0, 0, 0, 1)
+        gl.clear(gl.COLOR_BUFFER_BIT)
+
+        gl.drawArrays(gl.TRIANGLES, 0, n)
+
+        gl.uniform4f(colorUniformLocation, 0, 1, 0, 1)
+        gl.drawArrays(gl.POINTS, n, 1)
+    }
+    main()
+</script>
+</body>
+</html>

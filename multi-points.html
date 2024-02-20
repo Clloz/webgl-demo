@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>multi points</title>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<script id="vertex-shader-2d" type="notjs">#version 300 es
+    in vec4 a_position;
+    void main() {
+        gl_Position = a_position;
+    }
+</script>
+<script id="fragment-shader-2d" type="notjs">#version 300 es
+    precision mediump float;
+    out vec4 fragColor;
+    uniform vec4 u_color;
+    void main() {
+        fragColor = u_color;
+    }
+</script>
+<script src="./webgl.js"></script>
+<script>
+    function initVertexBuffers(gl) {
+        const vertices = new Float32Array([
+                0.0, 0.5,
+                -0.5, -0.5,
+                0.5, -0.5
+        ])
+        const n = 3
+
+        const vertexBuffer = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+
+        const positionLocation = gl.getAttribLocation(gl.program, 'a_position')
+
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(positionLocation)
+        return n
+    }
+    function main() {
+        const canvas = document.querySelector('#gl')
+        const gl = canvas.getContext('webgl2', {
+            antialias: false
+        })
+
+        const vertexShaderSource = document.querySelector('#vertex-shader-2d').text
+        const fragmentShaderSource = document.querySelector('#fragment-shader-2d').text
+
+        initShader(gl, vertexShaderSource, fragmentShaderSource)
+        const n = initVertexBuffers(gl)
+
+        const colorUniformLocation = gl.getUniformLocation(gl.program, 'u_color')
+        gl.uniform4f(colorUniformLocation, 1, 0, 0, 1)
+
+        gl.clearColor(0, 0, 0, 1)
+        gl.clear(gl.COLOR_BUFFER_BIT)
+
+        gl.drawArrays(gl.TRIANGLES, 0, n)
+    }
+
+    main()
+</script>
+</body>
+</html>

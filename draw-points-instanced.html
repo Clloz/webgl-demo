@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+<canvas></canvas>
+<script>
+// 创建 WebGL 上下文
+const canvas = document.querySelector('canvas');
+canvas.width = 500
+canvas.height = 500
+const gl = canvas.getContext('webgl2', {
+  antialias: false
+});  // 使用 WebGL 2.0
+
+gl.viewport(0, 0, canvas.width, canvas.height)
+
+// 创建顶点着色器
+const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(vertexShader, `#version 300 es
+    in vec2 position;
+    in vec3 color;
+
+    out vec3 vColor;
+    out vec2 vCenter;
+
+    void main() {
+        gl_Position = vec4(position, 0.0, 1.0);
+        gl_PointSize = 10.0;
+
+        vColor = color;
+        vCenter = position;
+    }
+`);
+gl.compileShader(vertexShader);
+
+// 创建片元着色器
+const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+gl.shaderSource(fragmentShader, `#version 300 es
+    precision highp float;
+
+    in vec3 vColor;
+    in vec2 vCenter;
+
+    out vec4 fragColor;
+
+    void main() {
+      fragColor = vec4(vColor, 1.0);
+    }
+`);
+gl.compileShader(fragmentShader);
+
+// 创建着色器程序
+const program = gl.createProgram();
+gl.attachShader(program, vertexShader);
+gl.attachShader(program, fragmentShader);
+gl.linkProgram(program);
+
+const positionLocation = gl.getAttribLocation(program, 'position');
+const colorLocation = gl.getAttribLocation(program, 'color');
+
+const instanceNum = 1000
+// const positionInstance = new Float32Array(instanceNum * 2);  // 每个实例有五个浮点数（x 和 y 位置，r、g、b 颜色）
+// const colorInstance = new Float32Array(instanceNum * 3)
+const instance = new Float32Array(instanceNum * 5)
+
+// const positionBuffer = gl.createBuffer();
+// const colorBuffer = gl.createBuffer()
+const instanceBuffer = gl.createBuffer()
+
+const vao = gl.createVertexArray()
+gl.bindVertexArray(vao)
+
+function animate() {
+    for (let i = 0; i < instanceNum; i++) {
+        // positionInstance[i * 2] = Math.random() * 2 - 1;  // x 位置
+        // positionInstance[i * 2 + 1] = Math.random() * 2 - 1;  // y 位置
+        // colorInstance[i * 3 + 0] = Math.random();  // r 颜色
+        // colorInstance[i * 3 + 1] = Math.random();  // g 颜色
+        // colorInstance[i * 3 + 2] = Math.random();  // b 颜色
+        instance[i * 5 + 0] = Math.random() * 2 - 1
+        instance[i * 5 + 1] = Math.random() * 2 - 1
+        instance[i * 5 + 2] = (Math.random() + 1) / 2
+        instance[i * 5 + 3] = (Math.random() + 1) / 2
+        instance[i * 5 + 4] = (Math.random() + 1) / 2
+    }
+
+    // gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    // gl.bufferData(gl.ARRAY_BUFFER, positionInstance, gl.DYNAMIC_DRAW);
+    // gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray(positionLocation);
+    // gl.vertexAttribDivisor(positionLocation, 1)
+
+    // gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer)
+    // gl.bufferData(gl.ARRAY_BUFFER, colorInstance, gl.DYNAMIC_DRAW);
+    // gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray(colorLocation);
+    // gl.vertexAttribDivisor(colorLocation, 1)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, instance, gl.DYNAMIC_DRAW)
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 20, 0)
+    gl.enableVertexAttribArray(positionLocation)
+    gl.vertexAttribDivisor(positionLocation, 1)
+    gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 20, 8)
+    gl.enableVertexAttribArray(colorLocation)
+    gl.vertexAttribDivisor(colorLocation, 1)
+
+    gl.useProgram(program);
+
+    // 绘制所有的实例
+    gl.clearColor(0,0,0,1)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    gl.drawArraysInstanced(gl.POINTS, 0, 1, instanceNum);
+
+    // 请求下一帧
+    // requestAnimationFrame(animate);
+}
+
+// 开始动画循环
+animate();
+</script>
+</body>
+</html>

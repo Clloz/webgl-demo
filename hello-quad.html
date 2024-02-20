@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>hello quad</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<script id="vertex-shader-2d" type="notjs">#version 300 es
+    in vec4 a_position;
+    void main() {
+        gl_Position = a_position;
+    }
+</script>
+<script id="fragment-shader-2d" type="notjs">#version 300 es
+    precision mediump float;
+    out vec4 fragColor;
+    uniform vec4 u_color;
+    void main() {
+        fragColor = u_color;
+    }
+</script>
+<script src="./webgl.js"></script>
+<script>
+    function bindDrag(gl) {
+        const canvas = document.querySelector('#gl')
+        let x1 = 0
+        let y1 = 0
+        let width = 0
+        let height = 0
+        const handleMousemove = (e) => {
+            const rect = canvas.getBoundingClientRect()
+            width = e.clientX - x1
+            height = e.clientY - y1
+
+            const vertices = new Float32Array([
+                x1 / rect.width * 2 - 1, 1 - (y1 + height) / rect.height * 2,
+                x1 / rect.width * 2 - 1, 1 - y1 / rect.height * 2,
+                (x1 + width) / rect.width * 2 - 1, 1 - y1 / rect.height * 2,
+                (x1 + width) / rect.width * 2 - 1, 1 - (y1 + height) / rect.height * 2,
+            ])
+
+            const vertexBuffer = gl.createBuffer()
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+
+            const a_position = gl.getAttribLocation(gl.program, 'a_position')
+            gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, 0, 0)
+            gl.enableVertexAttribArray(a_position)
+
+            gl.clear(gl.COLOR_BUFFER_BIT)
+            gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
+        }
+
+        const handleMouseup = () => {
+            document.removeEventListener('mousemove', handleMousemove)
+            document.removeEventListener('mouseup', handleMouseup)
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            gl.clear(gl.COLOR_BUFFER_BIT)
+            x1 = e.clientX
+            y1 = e.clientY
+            document.addEventListener('mousemove', handleMousemove)
+            document.addEventListener('mouseup', handleMouseup)
+        })
+    }
+    function main() {
+        const canvas = document.querySelector('#gl')
+        canvas.width = 500
+        canvas.height = 500
+        const gl = canvas.getContext('webgl2', {
+            antialias: false
+        })
+
+        const vertexShaderSource = document.querySelector('#vertex-shader-2d').text
+        const fragmentShaderSource = document.querySelector('#fragment-shader-2d').text
+        initShader(gl, vertexShaderSource, fragmentShaderSource)
+
+        const vertices = new Float32Array([
+            -0.5, -0.5,
+            -0.5, 0.5,
+            0.5, 0.5,
+            0.5, -0.5,
+        ])
+
+        const vertexBuffer = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+
+        const a_position = gl.getAttribLocation(gl.program, 'a_position')
+        gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(a_position)
+
+        const u_color = gl.getUniformLocation(gl.program, 'u_color')
+        gl.uniform4f(u_color, 1, 0, 0, 1)
+
+        gl.clearColor(0, 0, 0, 1)
+        gl.clear(gl.COLOR_BUFFER_BIT)
+
+        bindDrag(gl)
+
+        // gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
+    }
+
+    main()
+</script>
+</body>
+</html>
