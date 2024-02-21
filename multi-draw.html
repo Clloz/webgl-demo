@@ -125,19 +125,19 @@
   const colorInstance = new Float32Array(instanceNum * 3)
   // const colors = [[39, 125, 255], [48,192,25], [98, 39, 255]]
 
-  for (let i = 0; i < instanceNum; i++) {
-    const x = Math.random() * 2 - 1
-    const y = Math.random() * 2 - 1
-    const angle = Math.random() * 2 * Math.PI
-    const color = [Math.random(), Math.random(), Math.random()]
-    const matrix = [
-      Math.cos(angle), Math.sin(angle), 0,
-      -Math.sin(angle), Math.cos(angle), 0,
-      x, y, 1
-    ]
-    matrixInstance.set(matrix, i * 9)
-    colorInstance.set(color, i * 3)
-  }
+  // for (let i = 0; i < instanceNum; i++) {
+  //   const x = Math.random() * 2 - 1
+  //   const y = Math.random() * 2 - 1
+  //   const angle = Math.random() * 2 * Math.PI
+  //   const color = [Math.random(), Math.random(), Math.random()]
+  //   const matrix = [
+  //     Math.cos(angle), Math.sin(angle), 0,
+  //     -Math.sin(angle), Math.cos(angle), 0,
+  //     x, y, 1
+  //   ]
+  //   matrixInstance.set(matrix, i * 9)
+  //   colorInstance.set(color, i * 3)
+  // }
 
   gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer)
   gl.bufferData(gl.ARRAY_BUFFER, matrixInstance, gl.DYNAMIC_DRAW)
@@ -172,14 +172,14 @@
 
   const instanceBuffer = gl.createBuffer()
 
-  for (let i = 0; i < instanceNum1; i++) {
-    instanceData[i * 6] = Math.random() * 2 - 1
-    instanceData[i * 6 + 1] = Math.random() * 2 - 1
-    instanceData[i * 6 + 2] = 50
-    instanceData[i * 6 + 3] = Math.random()
-    instanceData[i * 6 + 4] = Math.random()
-    instanceData[i * 6 + 5] = Math.random()
-  }
+  // for (let i = 0; i < instanceNum1; i++) {
+  //   instanceData[i * 6] = Math.random() * 2 - 1
+  //   instanceData[i * 6 + 1] = Math.random() * 2 - 1
+  //   instanceData[i * 6 + 2] = 50
+  //   instanceData[i * 6 + 3] = Math.random()
+  //   instanceData[i * 6 + 4] = Math.random()
+  //   instanceData[i * 6 + 5] = Math.random()
+  // }
   gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer)
   gl.bufferData(gl.ARRAY_BUFFER, instanceData, gl.DYNAMIC_DRAW)
 
@@ -194,7 +194,8 @@
   gl.vertexAttribPointer(colorAttributeLocation, 3, gl.FLOAT, false, 24, 12)
   gl.enableVertexAttribArray(colorAttributeLocation)
   gl.vertexAttribDivisor(colorAttributeLocation, 1)
-  function animate(now) {
+  function animate(now = 0) {
+    getFps(now)
     gl.clearColor(0,0,0,1)
     gl.clear(gl.COLOR_BUFFER_BIT)
 

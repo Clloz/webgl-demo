@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+  const canvas = document.getElementById('canvas');
+  canvas.width = 500
+  canvas.height = 500
+  const gl = canvas.getContext('webgl2');
+
+  const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vertexShader, `#version 300 es
+  in vec2 a_position;
+  in vec3 a_color;
+  in mat3 a_matrix;
+
+  out vec3 v_color;
+  void main() {
+    // gl_Position = vec4(a_position, 0, 1);
+    gl_Position = vec4((a_matrix * vec3(a_position, 1)).xy, 0, 1);
+    v_color = a_color;
+  }
+`);
+  gl.compileShader(vertexShader);
+
+  const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fragmentShader, `#version 300 es
+  precision mediump float;
+  in vec3 v_color;
+  out vec4 fragColor;
+  void main() {
+    fragColor = vec4(v_color, 1);
+    // fragColor = vec4(1, 0, 0, 1);
+  }
+`);
+  gl.compileShader(fragmentShader);
+
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+
+  const vao = gl.createVertexArray()
+  gl.bindVertexArray(vao)
+
+  const instanceNum = 2
+  const indices = new Int16Array(instanceNum * 3)
+  for (let i = 0; i < instanceNum; i++) {
+    indices[i * 3] = i * 3
+    indices[i * 3 + 1] = i * 3 + 1
+    indices[i * 3 + 2] = i * 3 + 2
+  }
+  const indexBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
+
+  const positionBuffer = gl.createBuffer();
+  const positionData = new Float32Array(instanceNum * 6)
+  // const positionData = new Float32Array([
+  //   0, 0.1,
+  //   0.05, -0.05,
+  //   -0.05, -0.05,
+  // ])
+
+  const matrixBuffer = gl.createBuffer()
+  const matrixData = new Float32Array(instanceNum * 9)
+
+  const colorBuffer = gl.createBuffer()
+  const colorData = new Float32Array(instanceNum * 3)
+
+  for (let i = 0; i < instanceNum; i++) {
+    positionData[i * 6] = Math.random() * 2 - 1
+    positionData[i * 6 + 1] = Math.random() * 2 - 1
+    positionData[i * 6 + 2] = Math.random() * 2 - 1
+    positionData[i * 6 + 3] = Math.random() * 2 - 1
+    positionData[i * 6 + 4] = Math.random() * 2 - 1
+    positionData[i * 6 + 5] = Math.random() * 2 - 1
+
+    const x = Math.random() * 2 - 1
+    const y = Math.random() * 2 - 1
+    const angle = Math.random() * 2 * Math.PI
+    // const matrix = [
+    //   Math.cos(angle), Math.sin(angle), 0,
+    //   -Math.sin(angle), Math.cos(angle), 0,
+    //   x, y, 1
+    // ]
+    const matrix = [
+      1, 0, 0,
+      0, 1, 0,
+      0, 0, 1,
+    ]
+    matrixData.set(matrix, i * 9)
+    const color = [Math.random(), Math.random(), Math.random()]
+    colorData.set(color, i * 3)
+  }
+
+  console.log(positionData)
+  console.log(matrixData)
+  console.log(colorData)
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, positionData, gl.STATIC_DRAW);
+  const positionLocation = gl.getAttribLocation(program, 'a_position');
+  gl.enableVertexAttribArray(positionLocation);
+  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer)
+  gl.bufferData(gl.ARRAY_BUFFER, matrixData, gl.STATIC_DRAW);
+  const matrixLocation = gl.getAttribLocation(program, 'a_matrix');
+  for (let i = 0; i < 3; i++) {
+    gl.enableVertexAttribArray(matrixLocation + i);
+    gl.vertexAttribPointer(matrixLocation + i, 3, gl.FLOAT, false, 36, i * 12);
+    gl.vertexAttribDivisor(matrixLocation + i, 1);
+  }
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer)
+  gl.bufferData(gl.ARRAY_BUFFER, colorData, gl.STATIC_DRAW);
+  const colorLocation = gl.getAttribLocation(program, 'a_color')
+  gl.enableVertexAttribArray(colorLocation)
+  gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0)
+  gl.vertexAttribDivisor(colorLocation, 1)
+
+  function render() {
+    gl.clearColor(0,0,0,1)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    // Draw the triangles
+    gl.useProgram(program);
+    gl.drawElementsInstanced(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0, 1);
+    // gl.drawArraysInstanced(gl.TRIANGLES, 0, 3, instanceNum);
+  }
+
+  requestAnimationFrame(render)
+
+</script>
+</body>
+</html>

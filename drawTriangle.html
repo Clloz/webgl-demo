@@ -25,6 +25,7 @@
 <body>
   <div id="fps"></div>
   <canvas></canvas>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/3.4.2/gl-matrix-min.js" integrity="sha512-eV9ExyTa3b+YHr99IBTYpwk4wbgDMDlfW8uTxhywO8dWb810fGUSKDgHhEv1fAqmJT4jyYnt1iWWMW4FRxeQOQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script id="vertex-shader" type="notjs">#version 300 es
     in vec2 a_position;
     in mat3 a_matrix;
@@ -48,6 +49,16 @@
 </script>
 <script src="./webgl.js"></script>
 <script>
+  // const {mat3, vec2} = glMatrix
+  // const m = mat3.create()
+  // mat3.translate(m, m, vec2.fromValues(10, 20))
+  // mat3.rotate(m, m, 90 / 180 * Math.PI);
+  // console.log(m)
+  //
+  // const v = vec2.fromValues(0, 1)
+  // vec2.transformMat3(v, v, m)
+  // console.log(v)
+
 const getFps = fps('#fps')
 
 const canvas = document.querySelector('canvas')
