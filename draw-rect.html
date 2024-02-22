@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>draw rect</title>
+</head>
+<body>
+<canvas></canvas>
+<script src="./webgl.js"></script>
+<script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+  in vec2 aPosition;
+  in vec3 aColor;
+  in mat3 aMatrix;
+
+  out vec3 vColor;
+
+  void main() {
+    gl_Position = vec4((aMatrix * vec3(aPosition, 1)).xy, 0, 1);
+    vColor = aColor;
+  }
+</script>
+<script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+  precision mediump float;
+  in vec3 vColor;
+
+  out vec4 fragColor;
+
+  void main() {
+    fragColor = vec4(vColor, 1);
+  }
+</script>
+<script>
+  const canvas = document.querySelector('canvas')
+  canvas.width = 500
+  canvas.height = 500
+  const gl = canvas.getContext('webgl2')
+  console.log(gl.getParameter(gl.ALIASED_LINE_WIDTH_RANGE));
+
+  const [minSize, maxSize] = gl.getParameter(gl.ALIASED_LINE_WIDTH_RANGE);
+  console.log(minSize, maxSize)
+
+  const vertexShaderSource = document.querySelector('#vertex-shader').text
+  const fragmentShaderSource = document.querySelector('#fragment-shader').text
+  const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource)
+  const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)
+
+  const program = createProgram(gl, vertexShader, fragmentShader)
+
+  const linked = gl.getProgramParameter(program, gl.LINK_STATUS)
+
+  const aPosition = gl.getAttribLocation(program, 'aPosition')
+  const aColor = gl.getAttribLocation(program, 'aColor')
+  const aMatrix = gl.getAttribLocation(program, 'aMatrix')
+
+  const instanceNum = 100
+
+  const vao = gl.createVertexArray()
+  gl.bindVertexArray(vao)
+
+  const positionBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array(8)), gl.STATIC_DRAW)
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0)
+  gl.enableVertexAttribArray(aPosition)
+
+  const colorBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer)
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array(12)), gl.STATIC_DRAW)
+  gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0)
+  gl.enableVertexAttribArray(aColor)
+
+  const matrixBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer)
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array(instanceNum * 9)), gl.DYNAMIC_DRAW)
+  for (let j = 0; j < 3; j++) {
+    gl.enableVertexAttribArray(aMatrix + j)
+    gl.vertexAttribPointer(aMatrix + j, 3, gl.FLOAT, false, 36, j * 12)
+    gl.vertexAttribDivisor(aMatrix + j, 1)
+  }
+
+  const indicesBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesBuffer)
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 2, 1, 3]), gl.STATIC_DRAW)
+
+  gl.bindVertexArray(null)
+
+  function render() {
+    gl.clearColor(0,0,0,1)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    gl.useProgram(program)
+
+    gl.bindVertexArray(vao)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+    // gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(getVertex()), gl.STATIC_DRAW)
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(getVertex()))
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer)
+    // gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(getColor()), gl.STATIC_DRAW)
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(getColor()))
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer)
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(getMatrix()))
+
+    // gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceNum)
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0)
+
+    // requestAnimationFrame(render)
+  }
+  requestAnimationFrame(render)
+
+  function getVertex() {
+    return [
+      0, 0,
+      0.5, 0,
+      0, 0.5,
+      0.5, 0.5,
+    ]
+  }
+  function getColor() {
+    return [Math.random(), Math.random(), Math.random(), Math.random(), Math.random(), Math.random(), Math.random(), Math.random(), Math.random(), Math.random(), Math.random(), Math.random()]
+  }
+
+  function getMatrix() {
+    const matrixData = new Float32Array(instanceNum * 9)
+    for (let i = 0; i < instanceNum; i++) {
+      const x = Math.random() * 2 - 1
+      const y = Math.random() * 2 - 1
+      const angle = Math.random() * 2 * Math.PI
+      const matrix = [
+        Math.cos(angle), Math.sin(angle), 0,
+        -Math.sin(angle), Math.cos(angle), 0,
+        x, y, 1
+      ]
+      matrixData.set(matrix, i * 9)
+    }
+    return matrixData
+  }
+</script>
+</body>
+</html>

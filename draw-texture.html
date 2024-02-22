@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>draw texture</title>
+</head>
+<body>
+<canvas></canvas>
+<script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+  in vec2 aPosition;
+  in vec2 aTexcoord;
+  in mat3 aMatrix;
+
+  uniform vec2 uResolution;
+
+  out vec2 vTexcoord;
+
+  void main() {
+    vec2 position = vec2(aMatrix * vec3(aPosition, 1));
+    vec2 clipSpace = (position / uResolution) * 2.0 - 1.0;
+    gl_Position = vec4(vec3(clipSpace * vec2(1, -1), 1).xy, 0, 1);
+    vTexcoord = aTexcoord;
+  }
+</script>
+<script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+  precision mediump float;
+  in vec2 vTexcoord;
+  uniform sampler2D uTexture;
+  out vec4 fragColor;
+
+  void main() {
+    fragColor = texture(uTexture, vTexcoord).rgba;
+    // fragColor = vec4(1, 0, 0, 1);
+  }
+</script>
+<script src="./webgl.js"></script>
+<script>
+  function glInit(image) {
+    const canvas = document.querySelector('canvas')
+    canvas.width = 500
+    canvas.height = 500
+    const gl = canvas.getContext('webgl2')
+
+    const vertexShaderSource = document.querySelector('#vertex-shader').text
+    const fragmentShaderSource = document.querySelector('#fragment-shader').text
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource)
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)
+
+    const program = createProgram(gl, vertexShader, fragmentShader)
+
+    const aPosition = gl.getAttribLocation(program, 'aPosition')
+    const aTexcoord = gl.getAttribLocation(program, 'aTexcoord')
+    const aMatrix = gl.getAttribLocation(program, 'aMatrix')
+    console.log(aPosition, aMatrix, aTexcoord)
+
+    const vao = gl.createVertexArray()
+    gl.bindVertexArray(vao)
+
+    const positionBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array(8)), gl.STATIC_DRAW)
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(aPosition)
+
+    const texCoordBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array(8)), gl.STATIC_DRAW)
+    gl.vertexAttribPointer(aTexcoord, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(aTexcoord)
+
+    const matrixBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array(9)), gl.DYNAMIC_DRAW)
+    for (let j = 0; j < 3; j++) {
+      gl.enableVertexAttribArray(aMatrix + j)
+      gl.vertexAttribPointer(aMatrix + j, 3, gl.FLOAT, false, 36, j * 12)
+      gl.vertexAttribDivisor(aMatrix + j, 1)
+    }
+
+    const indices = [0, 1, 2, 2, 1, 3]
+    const indexBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW)
+
+    gl.bindVertexArray(null)
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    // Set the parameters so we can render any size image.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    // Upload the image into the texture.
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+    requestAnimationFrame(() => {
+      render(image, gl, program, vao, positionBuffer, matrixBuffer, texCoordBuffer)
+    })
+    // render(image, gl, program, vao, positionBuffer, matrixBuffer)
+  }
+
+  let x = 0
+  let y = 0
+  let angle = 0
+  function render(image, gl, program, vao, positionBuffer, matrixBuffer, texCoordBuffer) {
+    gl.clearColor(0, 0, 0, 1)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+    console.log(gl.canvas.width, gl.canvas.height)
+
+    gl.useProgram(program)
+
+    gl.bindVertexArray(vao)
+
+    const uResolution = gl.getUniformLocation(program, 'uResolution')
+    gl.uniform2f(uResolution, gl.canvas.width, gl.canvas.height)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+    const positionData = [
+      0, image.height,
+      image.width, image.height,
+      0, 0,
+      image.width, 0
+      // 0, 0,
+      // 0.5, 0,
+      // 0, 0.5,
+      // 0.5, 0.5,
+      // gl.canvas.width / 2 - image.width / 4, gl.canvas.height / 2 + image.height / 4,
+      // gl.canvas.width / 2 + image.width / 4, gl.canvas.height / 2 + image.height / 4,
+      // gl.canvas.width / 2 - image.width / 4, gl.canvas.height / 2 - image.height / 4,
+      // gl.canvas.width / 2 + image.width / 4, gl.canvas.height / 2 - image.height / 4
+    ]
+    console.log(positionData)
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(positionData))
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer)
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([
+      0, 0,
+      1, 0,
+      0, 1,
+      1, 1
+    ]))
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer)
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([
+      Math.cos(angle), Math.sin(angle), 0,
+      -Math.sin(angle), Math.cos(angle), 0,
+      x, y, 1
+    ]))
+
+    console.log(x, y, angle)
+
+
+    // const uTexture = gl.getUniformLocation(program, 'uTexture')
+    // gl.activeTexture(gl.TEXTURE0)
+    // gl.bindTexture(gl.TEXTURE_2D, texture)
+    // gl.uniform1i(uTexture, 0)
+
+    // x += 10 / gl.canvas.width
+    // y -= 10 / gl.canvas.height
+    angle -= 1 / 180 * Math.PI
+
+    // console.log(x, y, angle)
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0)
+    setTimeout(() => {
+      render(image, gl, program, vao, positionBuffer, matrixBuffer, texCoordBuffer)
+    }, 1000)
+    // requestAnimationFrame(render(image, gl, program, vao, positionBuffer, matrixBuffer, texCoordBuffer))
+  }
+
+  function getMatrix(x, y, angle) {
+    return [
+      Math.cos(angle), Math.sin(angle), 0,
+      -Math.sin(angle), Math.cos(angle), 0,
+      x, y, 1
+    ]
+  }
+
+  function main() {
+    const image = new Image()
+    image.src = './robot.png'
+    image.onload = () => {
+      glInit(image)
+    }
+  }
+
+  main()
+</script>
+</body>
+</html>
