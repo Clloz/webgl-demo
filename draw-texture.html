@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>draw texture</title>
+  <style>
+    canvas {
+      /*width: 500px;*/
+      /*height: 500px;*/
+    }
+  </style>
 </head>
 <body>
 <canvas></canvas>
@@ -36,10 +42,14 @@
 <script src="./webgl.js"></script>
 <script>
   function glInit(image) {
-    const canvas = document.querySelector('canvas')
-    canvas.width = 500
-    canvas.height = 500
+    const canvas = document.querySelector('canvas', {
+      antialias: true,
+    })
+    canvas.width = 1000
+    canvas.height = 1000
     const gl = canvas.getContext('webgl2')
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     const vertexShaderSource = document.querySelector('#vertex-shader').text
     const fragmentShaderSource = document.querySelector('#fragment-shader').text
@@ -52,7 +62,6 @@
     const aPosition = gl.getAttribLocation(program, 'aPosition')
     const aTexcoord = gl.getAttribLocation(program, 'aTexcoord')
     const aMatrix = gl.getAttribLocation(program, 'aMatrix')
-    console.log(aPosition, aMatrix, aTexcoord)
 
     const vao = gl.createVertexArray()
     gl.bindVertexArray(vao)
@@ -91,8 +100,10 @@
     // Set the parameters so we can render any size image.
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     // Upload the image into the texture.
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
@@ -103,14 +114,14 @@
     // render(image, gl, program, vao, positionBuffer, matrixBuffer)
   }
 
-  let x = 0
-  let y = 0
+  let x = 100
+  let y = 100
   let angle = 0
   function render(image, gl, program, vao, positionBuffer, matrixBuffer, texCoordBuffer) {
     gl.clearColor(0, 0, 0, 1)
     gl.clear(gl.COLOR_BUFFER_BIT)
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
-    console.log(gl.canvas.width, gl.canvas.height)
+    console.log(image.width, image.height);
 
     gl.useProgram(program)
 
@@ -124,17 +135,8 @@
       0, image.height,
       image.width, image.height,
       0, 0,
-      image.width, 0
-      // 0, 0,
-      // 0.5, 0,
-      // 0, 0.5,
-      // 0.5, 0.5,
-      // gl.canvas.width / 2 - image.width / 4, gl.canvas.height / 2 + image.height / 4,
-      // gl.canvas.width / 2 + image.width / 4, gl.canvas.height / 2 + image.height / 4,
-      // gl.canvas.width / 2 - image.width / 4, gl.canvas.height / 2 - image.height / 4,
-      // gl.canvas.width / 2 + image.width / 4, gl.canvas.height / 2 - image.height / 4
+      image.width, 0,
     ]
-    console.log(positionData)
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(positionData))
 
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer)
@@ -146,14 +148,14 @@
     ]))
 
     gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer)
+
+    const cos = Math.cos(angle)
+    const sin = Math.sin(angle)
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([
-      Math.cos(angle), Math.sin(angle), 0,
-      -Math.sin(angle), Math.cos(angle), 0,
-      x, y, 1
+      cos, sin, 0,
+      -sin, cos, 0,
+      x, y, 1,
     ]))
-
-    console.log(x, y, angle)
-
 
     // const uTexture = gl.getUniformLocation(program, 'uTexture')
     // gl.activeTexture(gl.TEXTURE0)
@@ -164,7 +166,6 @@
     // y -= 10 / gl.canvas.height
     angle -= 1 / 180 * Math.PI
 
-    // console.log(x, y, angle)
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0)
     setTimeout(() => {
       render(image, gl, program, vao, positionBuffer, matrixBuffer, texCoordBuffer)
