@@ -42,12 +42,12 @@
 <script src="./webgl.js"></script>
 <script>
   function glInit(image) {
-    const canvas = document.querySelector('canvas', {
-      antialias: true,
-    })
+    const canvas = document.querySelector('canvas')
     canvas.width = 1000
     canvas.height = 1000
-    const gl = canvas.getContext('webgl2')
+    const gl = canvas.getContext('webgl2', {
+      antialias: true
+    })
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -58,6 +58,13 @@
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)
 
     const program = createProgram(gl, vertexShader, fragmentShader)
+
+    const totalUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS)
+    console.log(totalUniforms)
+    for (let i = 0; i < totalUniforms; i++) {
+      const uniform = gl.getActiveUniform(program, i)
+      console.log(uniform)
+    }
 
     const aPosition = gl.getAttribLocation(program, 'aPosition')
     const aTexcoord = gl.getAttribLocation(program, 'aTexcoord')

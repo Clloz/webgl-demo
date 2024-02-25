@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>depth test</title>
+</head>
+<body>
+<canvas></canvas>
+<script src="./webgl.js"></script>
+<script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+  in vec2 aPosition;
+  in vec3 aColor;
+  in float aDepth;
+
+  out vec3 vColor;
+  out float vDepth;
+
+  void main() {
+    gl_Position = vec4(aPosition, 0, 1);
+    vColor = aColor;
+    vDepth = aDepth;
+  }
+</script>
+<script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+  precision mediump float;
+  in vec3 vColor;
+  in float vDepth;
+
+  out vec4 fragColor;
+
+  void main() {
+    fragColor = vec4(vColor, 1);
+    gl_FragDepth = vDepth;
+  }
+</script>
+<script>
+  const canvas = document.querySelector('canvas')
+  const gl = canvas.getContext('webgl2', {
+    antialias: true,
+    depth: true,
+  })
+  gl.enable(gl.DEPTH_TEST)
+
+  const vertexShaderSource = document.querySelector('#vertex-shader').text
+  const fragmentShaderSource = document.querySelector('#fragment-shader').text
+  const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource)
+  const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)
+
+  const program = createProgram(gl, vertexShader, fragmentShader)
+
+  const aPosition = gl.getAttribLocation(program, 'aPosition')
+  const aColor = gl.getAttribLocation(program, 'aColor')
+  const aDepth = gl.getAttribLocation(program, 'aDepth')
+
+  const positionBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+  const positions = [
+    -0.4, -0.6,
+    0.6, 0.4,
+    -0.4, 0.4,
+    -0.5, -0.5,
+    0.5, 0.5,
+    -0.5, 0.5,
+  ]
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
+  gl.enableVertexAttribArray(aPosition)
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0)
+
+  const colorBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer)
+  const colors = [
+    1, 0, 0,
+    1, 0, 0,
+    1, 0, 0,
+    0, 1, 0,
+    0, 1, 0,
+    0, 1, 0,
+  ]
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW)
+  gl.enableVertexAttribArray(aColor)
+  gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0)
+
+  const depthBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, depthBuffer)
+  const depths = [
+    0.11,
+    0.11,
+    0.11,
+    0.21,
+    0.21,
+    0.21,
+  ]
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(depths), gl.STATIC_DRAW)
+  gl.enableVertexAttribArray(aDepth)
+  gl.vertexAttribPointer(aDepth, 1, gl.FLOAT, false, 0, 0)
+
+  gl.clearDepth(0.22)
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+  gl.useProgram(program)
+  gl.drawArrays(gl.TRIANGLES, 0, 6)
+
+</script>
+</body>
+</html>
