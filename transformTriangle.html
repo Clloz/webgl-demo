@@ -30,10 +30,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/3.4.2/gl-matrix-min.js" integrity="sha512-eV9ExyTa3b+YHr99IBTYpwk4wbgDMDlfW8uTxhywO8dWb810fGUSKDgHhEv1fAqmJT4jyYnt1iWWMW4FRxeQOQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="./webgl.js"></script>
 <script>
-    const {mat3, vec3} = glMatrix
+    const {mat3, vec2} = glMatrix
 
-    const modelMatrix = mat3.create();
-    console.log(mat3.translate(modelMatrix, modelMatrix, vec3.fromValues(0.5, 0.5, 0.0)))
+    const m = mat3.create();
+    mat3.translate(m, m, vec2.fromValues(50, 50))
+    mat3.rotate(m, m, Math.PI / 2)
+    console.log(vec2.negate(vec2.create(), vec2.fromValues(50, 50)))
+    mat3.translate(m, m, vec2.negate(vec2.create(), vec2.fromValues(50, 50)))
+    console.log(m)
     function main() {
         const canvas = document.querySelector('#gl')
         canvas.width = 500

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>transform-matrix</title>
+  <style>
+    .wrapper {
+      text-align: center;
+      margin-top: 100px;
+    }
+    img {
+      width: 200px;
+      transform-origin: left top;
+      /*transform: matrix(0, 1, -1,0,0,0);*/
+      border: 1px solid;
+      transition: all 0.5s;
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <img src="./firefox-logo.svg" alt="">
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/3.4.2/gl-matrix-min.js" integrity="sha512-eV9ExyTa3b+YHr99IBTYpwk4wbgDMDlfW8uTxhywO8dWb810fGUSKDgHhEv1fAqmJT4jyYnt1iWWMW4FRxeQOQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+  function mat3ToCssMatrix(matrix) {
+    const a = matrix[0]
+    const b = matrix[1]
+    const c = matrix[3]
+    const d = matrix[4]
+    const e = matrix[6]
+    const f = matrix[7]
+
+    console.log('matrix css', matrix, a, b, c, d, e, f)
+
+    return `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f})`;
+  }
+
+  let useMatrix = false
+
+  const { mat3, vec2 } = glMatrix
+  const m = mat3.create()
+  mat3.translate(m, m, vec2.fromValues(-50, 0))
+  mat3.rotate(m, m, Math.PI / 2)
+  // mat3.translate(m, m, vec2.fromValues(-50, 0))
+
+  const image = document.querySelector('img')
+  document.addEventListener('click', () => {
+    if (useMatrix) {
+      image.style.transform = ''
+      useMatrix = false
+    } else {
+      image.style.transform = mat3ToCssMatrix(m)
+      useMatrix = true
+    }
+  })
+</script>
+</body>
+</html>
